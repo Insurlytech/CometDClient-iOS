@@ -45,9 +45,15 @@ public typealias ChannelSubscriptionBlock = (NSDictionary) -> Void
 
 // MARK: - Subscription
 public struct Subscription: Equatable {
-  var callback: ChannelSubscriptionBlock?
-  var channel: String
-  var id: Int
+  public var callback: ChannelSubscriptionBlock?
+  public var channel: String
+  public var id: Int
+  
+  public init(callback: ChannelSubscriptionBlock?, channel: String, id: Int) {
+    self.callback = callback
+    self.channel = channel
+    self.id = id
+  }
   
   public static func ==(lhs: Subscription, rhs: Subscription) -> Bool {
     return lhs.id == rhs.id && lhs.channel == rhs.channel
