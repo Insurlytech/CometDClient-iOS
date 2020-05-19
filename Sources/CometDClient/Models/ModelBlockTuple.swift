@@ -11,4 +11,9 @@ import Foundation
 public struct ModelBlockTuple {
   let model: CometdSubscriptionModel
   let block: ChannelSubscriptionBlock?
+  
+  public init(model: CometdSubscriptionModel, block: ChannelSubscriptionBlock?) {
+    self.model = model
+    self.block = block
+  }
 }
