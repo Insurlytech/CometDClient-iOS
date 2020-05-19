@@ -8,7 +8,7 @@
 
 import Foundation
 
-public enum subscriptionError: Error {
+public enum SubscriptionError: Error {
   case error(subscription: String, error: String)
 }
 
@@ -24,7 +24,7 @@ public protocol CometdClientDelegate: class {
   func connectionFailed(_ client: CometdClient)
   func didSubscribeToChannel(_ client: CometdClient, channel: String)
   func didUnsubscribeFromChannel(_ client: CometdClient, channel: String)
-  func subscriptionFailedWithError(_ client: CometdClient, error: subscriptionError)
+  func subscriptionFailedWithError(_ client: CometdClient, error: SubscriptionError)
   func cometdClientError(_ client: CometdClient, error: Error)
 }
 
@@ -39,6 +39,6 @@ public extension CometdClientDelegate {
   func connectionFailed(_ client: CometdClient) { }
   func didSubscribeToChannel(_ client: CometdClient, channel: String) { }
   func didUnsubscribeFromChannel(_ client: CometdClient, channel: String) { }
-  func subscriptionFailedWithError(_ client: CometdClient, error: subscriptionError) { }
+  func subscriptionFailedWithError(_ client: CometdClient, error: SubscriptionError) { }
   func cometdClientError(_ client: CometdClient, error: Error) { }
 }

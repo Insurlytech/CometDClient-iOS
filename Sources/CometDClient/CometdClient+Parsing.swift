@@ -106,7 +106,7 @@ extension CometdClient {
       } else if let error = message[Bayeux.Error.rawValue].string,
         let subscription = message[Bayeux.Subscription.rawValue].string { // Subscribe Failed
         removeChannelFromPendingSubscriptions(subscription)
-        delegate?.subscriptionFailedWithError(self, error: subscriptionError.error(subscription: subscription, error: error))
+        delegate?.subscriptionFailedWithError(self, error: SubscriptionError.error(subscription: subscription, error: error))
       }
     case .Unsubscibe:
       if let subscription = message[Bayeux.Subscription.rawValue].string {
