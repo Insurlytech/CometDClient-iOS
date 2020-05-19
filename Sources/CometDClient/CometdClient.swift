@@ -18,7 +18,7 @@ public enum CometdSubscriptionState {
   case subscribingTo(CometdSubscriptionModel)
   case unknown(CometdSubscriptionModel?)
   
-  var isSubscribingTo: Bool {
+  public var isSubscribingTo: Bool {
     switch self {
     case .subscribingTo:
       return true
@@ -27,7 +27,7 @@ public enum CometdSubscriptionState {
     }
   }
   
-  var model: CometdSubscriptionModel? {
+  public var model: CometdSubscriptionModel? {
     switch self {
     case .pending(let model),
          .subscribed(let model),

@@ -164,7 +164,7 @@ extension CometdClient {
     }
   }
   
-  func subscribe(_ models: [CometdSubscriptionModel]) {
+  public func subscribe(_ models: [CometdSubscriptionModel]) {
     writeOperationQueue.sync { [unowned self] in
       let objects: [String] = models.compactMap({ (model) -> String? in
         self.pendingSubscriptions.append(model)
@@ -180,7 +180,7 @@ extension CometdClient {
   // "channel": "/meta/subscribe",
   // "clientId": "Un1q31d3nt1f13r",
   // "subscription": "/foo/**"
-  func subscribe(_ model: CometdSubscriptionModel) {
+  public func subscribe(_ model: CometdSubscriptionModel) {
     writeOperationQueue.sync { [unowned self] in
       do {
         let json = try model.jsonString()
@@ -231,7 +231,7 @@ extension CometdClient {
   // "data": "some application string or JSON encoded object",
   // "id": "some unique message id"
   // }
-  func publish(_ data: [String: Any], channel: String) {
+  public func publish(_ data: [String: Any], channel: String) {
     writeOperationQueue.sync { [weak self] in
       if let clientId = self?.cometdClientId, let messageId = self?.nextMessageId(), self?.cometdConnected == true {
         let dict: [String: Any] = [
