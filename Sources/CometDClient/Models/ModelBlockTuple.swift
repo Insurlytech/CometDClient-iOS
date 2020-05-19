@@ -9,8 +9,8 @@ import Foundation
 
 // MARK: - ModelBlockTuple
 public struct ModelBlockTuple {
-  let model: CometdSubscriptionModel
-  let block: ChannelSubscriptionBlock?
+  public let model: CometdSubscriptionModel
+  public let block: ChannelSubscriptionBlock?
   
   public init(model: CometdSubscriptionModel, block: ChannelSubscriptionBlock?) {
     self.model = model
