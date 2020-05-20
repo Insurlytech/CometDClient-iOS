@@ -22,7 +22,7 @@ To use CometDClient in your project add the following 'Podfile' to your project
   platform :ios, '10.0'
   use_frameworks!
 
-pod 'CometDClient', '~> 1.0.0'
+    pod 'CometDClient', '~> 1.0.0'
 
 Then run:
 
