@@ -1,6 +1,0 @@
-framework module Pods_CometDClient {
-  umbrella header "Pods-CometDClient-umbrella.h"
-
-  export *
-  module * { export * }
-}
