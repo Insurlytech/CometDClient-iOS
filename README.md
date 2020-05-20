@@ -16,7 +16,7 @@ import CometDClient
 
 Check out [Get Started](http://cocoapods.org/) tab on [cocoapods.org](http://cocoapods.org/).
 
-To use CometDClient in your project add the following 'Podfile' to your project:
+To use CometDClient in your 'Podfile':
   
     pod 'CometDClient', '~> 1.0.0'
 
