@@ -16,12 +16,8 @@ import CometDClient
 
 Check out [Get Started](http://cocoapods.org/) tab on [cocoapods.org](http://cocoapods.org/).
 
-To use CometDClient in your project add the following 'Podfile' to your project
-
-  source 'https://github.com/CocoaPods/Specs.git'
-  platform :ios, '10.0'
-  use_frameworks!
-
+To use CometDClient in your project add the following 'Podfile' to your project:
+  
     pod 'CometDClient', '~> 1.0.0'
 
 Then run:
