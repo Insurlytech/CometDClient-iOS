@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |spec|
   spec.name         = "CometDClient"
-  spec.version      = "1.0.0-alpha-2"
+  spec.version      = "1.0.0-alpha-3"
   spec.summary      = "Swift client for ZetaPush"
   spec.description  = <<-DESC
   CometD is a scalable web event routing bus that allows you to write low-latency, server-side, event-driven web applications. Typical examples of such applications are stock trading applications, web chat applications, online games, and monitoring consoles.
@@ -18,9 +18,10 @@ Pod::Spec.new do |spec|
   spec.author       = { "Anthony GUIGUEN" => "anthony@insurlytech.com" }
 
   spec.platform     = :ios, "10.0"
-  spec.source       = { :git => "https://github.com/Insurlytech/CometDClient-iOS", :tag => "#{spec.version}" }
+  spec.source       = { :git => "https://github.com/Insurlytech/CometDClient-iOS.git", :tag => "#{spec.version}" }
   spec.source_files  = "Sources/**/*.swift"
   spec.exclude_files = "Classes/Exclude"
+  spec.swift_version = '5.2'
 
   spec.framework  = "Foundation"
   spec.requires_arc = true
