@@ -178,8 +178,8 @@ open class CometdClient: TransportDelegate {
   }
   
   open func sendPing(_ data: Data, completion: (() -> Void)?) {
-    writeOperationQueue.async { [unowned self] in
-      self.transport?.sendPing(data, completion: completion)
+    writeOperationQueue.async { [weak self] in
+      self?.transport?.sendPing(data, completion: completion)
     }
   }
   

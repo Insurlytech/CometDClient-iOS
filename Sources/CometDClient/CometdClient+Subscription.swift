@@ -33,18 +33,18 @@ extension CometdClient {
   
   // MARK: Send/Receive
   func send(_ message: NSDictionary) {
-    writeOperationQueue.async { [unowned self] in
+    writeOperationQueue.async { [weak self] in
       if let string = JSON(message).rawString() {
-        self.transport?.writeString(string)
+        self?.transport?.writeString(string)
       }
     }
   }
   
   func receive(_ message: String) {
-    readOperationQueue.sync { [unowned self] in
+    readOperationQueue.sync { [weak self] in
       if let jsonData = message.data(using: String.Encoding.utf8, allowLossyConversion: false) {
         if let json = try? JSON(data: jsonData) {
-          self.parseCometdMessage(json.arrayValue)
+          self?.parseCometdMessage(json.arrayValue)
         }
       }
     }

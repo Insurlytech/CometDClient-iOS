@@ -94,7 +94,7 @@ extension CometdClient {
   // "minimumVersion": "1.0beta",
   // "supportedConnectionTypes": ["long-polling", "callback-polling", "iframe", "websocket]
   func handshake(_ data: [String: Any]) {
-    writeOperationQueue.sync { [unowned self] in
+    writeOperationQueue.sync { [weak self] in
       let connTypes = [BayeuxConnection.LongPolling.rawValue, BayeuxConnection.Callback.rawValue, BayeuxConnection.iFrame.rawValue, BayeuxConnection.WebSocket.rawValue]
       
       var dict: [String: Any] = [
@@ -116,8 +116,8 @@ extension CometdClient {
       dict["advice"] = advice
       
       if let string = JSON(dict).rawString(String.Encoding.utf8, options: []) {
-        self.log.verbose("CometdClient handshake \(string)")
-        self.transport?.writeString("["+string+"]")
+        self?.log.verbose("CometdClient handshake \(string)")
+        self?.transport?.writeString("["+string+"]")
       }
     }
   }
@@ -127,8 +127,8 @@ extension CometdClient {
   // "clientId": "Un1q31d3nt1f13r",
   // "connectionType": "long-polling"
   func connect() {
-    writeOperationQueue.sync { [unowned self] in
-      guard let cometdClientId = self.cometdClientId else { return }
+    writeOperationQueue.sync { [weak self] in
+      guard let self = self, let cometdClientId = self.cometdClientId else { return }
       let messageId = self.nextMessageId()
       let dict: [String: Any] = [
         Bayeux.Id.rawValue: messageId,
@@ -150,7 +150,8 @@ extension CometdClient {
   // "clientId": "Un1q31d3nt1f13r"
   func disconnect() {
     guard let cometdClientId = self.cometdClientId, isConnected() else { return }
-    writeOperationQueue.sync { [unowned self] in
+    writeOperationQueue.sync { [weak self] in
+      guard let self = self else { return }
       let messageId = self.nextMessageId()
       let dict: [String: Any] = [
         Bayeux.Id.rawValue: messageId,
@@ -165,7 +166,8 @@ extension CometdClient {
   }
   
   public func subscribe(_ models: [CometdSubscriptionModel]) {
-    writeOperationQueue.sync { [unowned self] in
+    writeOperationQueue.sync { [weak self] in
+      guard let self = self else { return }
       let objects: [String] = models.compactMap({ (model) -> String? in
         self.pendingSubscriptions.append(model)
         return try? model.jsonString()
@@ -181,7 +183,8 @@ extension CometdClient {
   // "clientId": "Un1q31d3nt1f13r",
   // "subscription": "/foo/**"
   public func subscribe(_ model: CometdSubscriptionModel) {
-    writeOperationQueue.sync { [unowned self] in
+    writeOperationQueue.sync { [weak self] in
+      guard let self = self else { return }
       do {
         let json = try model.jsonString()
         self.log.verbose("CometdClient subscribe \(json)")
@@ -208,18 +211,17 @@ extension CometdClient {
   // "subscription": "/foo/**"
   // }
   func unsubscribe(_ channel: String) {
-    writeOperationQueue.sync { [unowned self] in
-      if let clientId = self.cometdClientId {
-        let dict: [String: Any] = [
-          Bayeux.Channel.rawValue: BayeuxChannel.Unsubscibe.rawValue,
-          Bayeux.ClientId.rawValue: clientId,
-          Bayeux.Subscription.rawValue: channel
-        ]
-        
-        if let string = JSON(dict).rawString(String.Encoding.utf8, options: []) {
-          self.log.verbose("CometdClient unsubscribe \(string)")
-          self.transport?.writeString("["+string+"]")
-        }
+    writeOperationQueue.sync { [weak self] in
+      guard let self = self, let clientId = self.cometdClientId else { return }
+      let dict: [String: Any] = [
+        Bayeux.Channel.rawValue: BayeuxChannel.Unsubscibe.rawValue,
+        Bayeux.ClientId.rawValue: clientId,
+        Bayeux.Subscription.rawValue: channel
+      ]
+      
+      if let string = JSON(dict).rawString(String.Encoding.utf8, options: []) {
+        self.log.verbose("CometdClient unsubscribe \(string)")
+        self.transport?.writeString("["+string+"]")
       }
     }
   }
