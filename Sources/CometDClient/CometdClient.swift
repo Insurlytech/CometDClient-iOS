@@ -32,6 +32,10 @@ public class CometdClient: CometdClientContract {
   }
   
   // MARK: Configure
+  public func setForceSecure(_ isSecure: Bool) {
+    self.forceSecure = isSecure
+  }
+  
   public func configure(url: String, backoffIncrement: Int = 1000, maxBackoff: Int = 60000, appendMessageTypeToURL: Bool = false) {
     // Check protocol (only websocket for now)
     let rawUrl = URL(string: url)
@@ -73,10 +77,6 @@ public class CometdClient: CometdClientContract {
   public func disconnectFromServer() {
     self.subscriber.unsubscribeAllSubscriptions()
     self.bayeuxClient.disconnect()
-  }
-  
-  public func setForceSecure(_ isSecure: Bool) {
-    self.forceSecure = isSecure
   }
   
   // MARK: Subscription

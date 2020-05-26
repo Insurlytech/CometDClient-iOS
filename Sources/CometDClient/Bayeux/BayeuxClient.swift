@@ -54,12 +54,12 @@ class BayeuxClient: BayeuxClientContract {
         "authentication": data
       ]
       let advice: [String: Any] = [
-        "interval": 0,
-        "timeout": 6000
+        BayeuxAdvice.interval.rawValue: 0,
+        BayeuxAdvice.timeout.rawValue: 6000
       ]
       
-      dict["ext"] = ext
-      dict["advice"] = advice
+      dict[Bayeux.ext.rawValue] = ext
+      dict[Bayeux.advice.rawValue] = advice
       
       if let string = JSON(dict).rawString(String.Encoding.utf8, options: []) {
         self?.log.verbose("CometdClient handshake \(string)")
