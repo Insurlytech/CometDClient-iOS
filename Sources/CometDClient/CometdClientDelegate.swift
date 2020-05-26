@@ -14,31 +14,31 @@ public enum SubscriptionError: Error {
 
 // MARK: CometdClientDelegate
 public protocol CometdClientDelegate: class {
-  func messageReceived(_ client: CometdClient, messageDict: NSDictionary, channel: String)
-  func pongReceived(_ client: CometdClient)
-  func connectedToServer(_ client: CometdClient)
-  func handshakeSucceeded(_ client: CometdClient, handshakeDict: NSDictionary)
-  func handshakeFailed(_ client: CometdClient)
-  func disconnectedFromServer(_ client: CometdClient)
-  func disconnectedAdviceReconnect(_ client: CometdClient)
-  func connectionFailed(_ client: CometdClient)
-  func didSubscribeToChannel(_ client: CometdClient, channel: String)
-  func didUnsubscribeFromChannel(_ client: CometdClient, channel: String)
-  func subscriptionFailedWithError(_ client: CometdClient, error: SubscriptionError)
-  func cometdClientError(_ client: CometdClient, error: Error)
+  func messageReceived(messageDict: NSDictionary, channel: String)
+  func pongReceived()
+  func connectedToServer()
+  func handshakeSucceeded(handshakeDict: NSDictionary)
+  func handshakeFailed()
+  func disconnectedFromServer()
+  func disconnectedAdviceReconnect()
+  func connectionFailed()
+  func didSubscribeToChannel(channel: String)
+  func didUnsubscribeFromChannel(channel: String)
+  func subscriptionFailedWithError(error: SubscriptionError)
+  func cometdClientError(error: Error)
 }
 
 public extension CometdClientDelegate {
-  func messageReceived(_ client: CometdClient, messageDict: NSDictionary, channel: String) { }
-  func pongReceived(_ client: CometdClient) { }
-  func connectedToServer(_ client: CometdClient) { }
-  func handshakeSucceeded(_ client: CometdClient, handshakeDict: NSDictionary) { }
-  func handshakeFailed(_ client: CometdClient) { }
-  func disconnectedFromServer(_ client: CometdClient) { }
-  func disconnectedAdviceReconnect(_ client: CometdClient) { }
-  func connectionFailed(_ client: CometdClient) { }
-  func didSubscribeToChannel(_ client: CometdClient, channel: String) { }
-  func didUnsubscribeFromChannel(_ client: CometdClient, channel: String) { }
-  func subscriptionFailedWithError(_ client: CometdClient, error: SubscriptionError) { }
-  func cometdClientError(_ client: CometdClient, error: Error) { }
+  func messageReceived(messageDict: NSDictionary, channel: String) { }
+  func pongReceived() { }
+  func connectedToServer() { }
+  func handshakeSucceeded(handshakeDict: NSDictionary) { }
+  func handshakeFailed() { }
+  func disconnectedFromServer() { }
+  func disconnectedAdviceReconnect() { }
+  func connectionFailed() { }
+  func didSubscribeToChannel(channel: String) { }
+  func didUnsubscribeFromChannel(channel: String) { }
+  func subscriptionFailedWithError(error: SubscriptionError) { }
+  func cometdClientError(error: Error) { }
 }
