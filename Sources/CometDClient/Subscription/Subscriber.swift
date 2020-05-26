@@ -11,12 +11,42 @@ import XCGLogger
 
 class Subscriber: SubscriberContract {
   // MARK: Properties
-  private var queuedSubscriptions = [CometdSubscriptionModel]()
-  private var pendingSubscriptions = [CometdSubscriptionModel]()
+  // Avoid Data Races : Unsynchronized access to mutable state across multiple threads
+  private let queuedSubscriptionsQueue = DispatchQueue(label: "com.cometdclient.queuedSubscriptions.queue", attributes: .concurrent)
+  private var _queuedSubscriptions = [CometdSubscriptionModel]()
+  private var queuedSubscriptions: [CometdSubscriptionModel] {
+    get { queuedSubscriptionsQueue.sync { self._queuedSubscriptions } }
+    set {
+      queuedSubscriptionsQueue.async(flags: .barrier) { [weak self] in
+        self?._queuedSubscriptions = newValue
+      }
+    }
+  }
+  // Avoid Data Races : Unsynchronized access to mutable state across multiple threads
+  private let pendingSubscriptionsQueue = DispatchQueue(label: "com.cometdclient.pendingSubscriptions.queue", attributes: .concurrent)
+  private var _pendingSubscriptions = [CometdSubscriptionModel]()
+  private var pendingSubscriptions: [CometdSubscriptionModel] {
+    get { pendingSubscriptionsQueue.sync { self._pendingSubscriptions } }
+    set {
+      pendingSubscriptionsQueue.async(flags: .barrier) { [weak self] in
+        self?._pendingSubscriptions = newValue
+      }
+    }
+  }
   private var bayeuxClient: BayeuxClientContract
   private let log: XCGLogger
   
-  var openSubscriptions = [CometdSubscriptionModel]()
+  // Avoid Data Races : Unsynchronized access to mutable state across multiple threads
+  private let openSubscriptionsQueue = DispatchQueue(label: "com.cometdclient.openSubscriptions.queue", attributes: .concurrent)
+  private var _openSubscriptions = [CometdSubscriptionModel]()
+  var openSubscriptions: [CometdSubscriptionModel] {
+    get { openSubscriptionsQueue.sync { self._openSubscriptions } }
+    set {
+      openSubscriptionsQueue.async(flags: .barrier) { [weak self] in
+        self?._openSubscriptions = newValue
+      }
+    }
+  }
   var channelSubscriptionBlocks = [String: [Subscription]]()
   
   private lazy var pendingSubscriptionSchedule = Timer.scheduledTimer(
@@ -164,9 +194,6 @@ class Subscriber: SubscriberContract {
   
   @discardableResult
   func removeChannelFromQueuedSubscriptions(_ channel: String) -> Bool {
-    objc_sync_enter(self.queuedSubscriptions)
-    defer { objc_sync_exit(self.queuedSubscriptions) }
-    
     let index = self.queuedSubscriptions.firstIndex { $0.subscriptionUrl == channel }
     
     if let index = index {
@@ -178,9 +205,6 @@ class Subscriber: SubscriberContract {
   
   @discardableResult
   func removeChannelFromPendingSubscriptions(_ channel: String) -> Bool {
-    objc_sync_enter(self.pendingSubscriptions)
-    defer { objc_sync_exit(self.pendingSubscriptions) }
-    
     let index = self.pendingSubscriptions.firstIndex { $0.subscriptionUrl == channel }
     
     if let index = index {
@@ -192,9 +216,6 @@ class Subscriber: SubscriberContract {
   
   @discardableResult
   func removeChannelFromOpenSubscriptions(_ channel: String) -> Bool {
-    objc_sync_enter(self.pendingSubscriptions)
-    defer { objc_sync_exit(self.pendingSubscriptions) }
-    
     let index = self.openSubscriptions.firstIndex { $0.subscriptionUrl == channel }
     
     if let index = index {
