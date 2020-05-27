@@ -10,111 +10,33 @@ import Foundation
 import Starscream
 import XCGLogger
 
-// MARK: - CometdSubscriptionState
-public enum CometdSubscriptionState {
-  case pending(CometdSubscriptionModel)
-  case subscribed(CometdSubscriptionModel)
-  case queued(CometdSubscriptionModel)
-  case subscribingTo(CometdSubscriptionModel)
-  case unknown(CometdSubscriptionModel?)
-  
-  public var isSubscribingTo: Bool {
-    switch self {
-    case .subscribingTo:
-      return true
-    default:
-      return false
-    }
-  }
-  
-  public var model: CometdSubscriptionModel? {
-    switch self {
-    case .pending(let model),
-         .subscribed(let model),
-         .queued(let model),
-         .subscribingTo(let model),
-         .unknown(let model?):
-      return model
-    default:
-      return nil
-    }
-  }
-}
-
-public typealias ChannelSubscriptionBlock = (NSDictionary) -> Void
-
-// MARK: - Subscription
-public struct Subscription: Equatable {
-  public var callback: ChannelSubscriptionBlock?
-  public var channel: String
-  public var id: Int
-  
-  public init(callback: ChannelSubscriptionBlock?, channel: String, id: Int) {
-    self.callback = callback
-    self.channel = channel
-    self.id = id
-  }
-  
-  public static func ==(lhs: Subscription, rhs: Subscription) -> Bool {
-    return lhs.id == rhs.id && lhs.channel == rhs.channel
-  }
-}
-
-// MARK: - CometdClient
-open class CometdClient: TransportDelegate {
+public class CometdClient: CometdClientContract {
   // MARK: Properties
-  open var handshakeFields: [String: Any]?
-  open var cometdClientId: String?
+  private lazy var bayeuxClient: BayeuxClientContract = BayeuxClient(log: log, timeOut: timeOut)
+  private lazy var subscriber: SubscriberContract = Subscriber(bayeuxClient: bayeuxClient, log: log)
+  private lazy var transportAdapter = CometdClientTransportAdapter(bayeuxClient: bayeuxClient, subscriber: subscriber, log: log, delegate: self)
   
-  open weak var delegate: CometdClientDelegate?
-  
-  var transport: WebsocketTransport?
-  
-  open var cometdConnected: Bool?
-  
-  let log = XCGLogger(identifier: "cometdLogger", includeDefaultDestinations: true)
-  
-  var connectionInitiated: Bool?
-  var messageNumber: UInt32 = 0
-  
-  var forceSecure = false
-  
-  var logLevel: XCGLogger.Level = .severe
-  
-  var queuedSubscriptions = [CometdSubscriptionModel]()
-  var pendingSubscriptions = [CometdSubscriptionModel]()
-  var openSubscriptions = [CometdSubscriptionModel]()
-  
-  var channelSubscriptionBlocks = [String: [Subscription]]()
-  
-  lazy var pendingSubscriptionSchedule: Timer = {
-    return Timer.scheduledTimer(timeInterval: 45, target: self, selector: #selector(pendingSubscriptionsAction(_:)), userInfo: nil, repeats: true)
-  }()
-  
+  private var forceSecure = false
   /// Default in 10 seconds
-  let timeOut: Int
+  private let timeOut: Int
   
-  let readOperationQueue = DispatchQueue(label: "com.cometdclient.read", attributes: [])
-  let writeOperationQueue = DispatchQueue(label: "com.cometdclient.write", attributes: DispatchQueue.Attributes.concurrent)
+  public let log = XCGLogger(identifier: "cometdLogger", includeDefaultDestinations: true)
+  public var isConnected: Bool { bayeuxClient.isConnected }
+  public var clientId: String? { bayeuxClient.clientId }
   
+  public weak var delegate: CometdClientDelegate?
+    
   // MARK: Lifecycle
   public init(timeoutAdvice: Int = 10000) {
-    self.cometdConnected = false
-    self.connectionInitiated = false
     self.timeOut = timeoutAdvice
   }
   
-  deinit {
-    pendingSubscriptionSchedule.invalidate()
+  // MARK: Configure
+  public func setForceSecure(_ isSecure: Bool) {
+    self.forceSecure = isSecure
   }
   
-  // MARK: Methods
-  open func setLogLevel(logLevel: XCGLogger.Level) {
-    self.log.setup(level: logLevel)
-    self.logLevel = logLevel
-  }
-  
-  open func configure(url: String, backoffIncrement: Int = 1000, maxBackoff: Int = 60000, appendMessageTypeToURL: Bool = false) {
+  public func configure(url: String, backoffIncrement: Int = 1000, maxBackoff: Int = 60000, appendMessageTypeToURL: Bool = false) {
     // Check protocol (only websocket for now)
     let rawUrl = URL(string: url)
     guard let path = rawUrl?.path, let host = rawUrl?.host else {
@@ -130,126 +52,95 @@ open class CometdClient: TransportDelegate {
       cometdURLString = scheme + host + path
     }
     
-    self.cometdConnected = false
-    
-    self.transport = WebsocketTransport(url: cometdURLString, logLevel: self.logLevel)
-    self.transport?.delegate = self
+    let transport = WebsocketTransport(url: cometdURLString, logLevel: log.outputLevel)
+    transport.delegate = transportAdapter
+    self.bayeuxClient.transport = transport
   }
   
-  open func connectHandshake(_ handshakeFields: [String: Any]) {
-    self.handshakeFields = handshakeFields
-    log.debug("CometdClient handshake")
-    
-    if self.connectionInitiated != true {
-      self.transport?.openConnection()
-      self.connectionInitiated = true
-    } else {
-      log.debug("Cometd: Connection established")
-    }
+  // MARK: Connection
+  public func handshake(fields: [String: Any]) {
+    bayeuxClient.openConnection(with: fields)
   }
   
-  open func getCometdClientId() -> String {
-    return self.cometdClientId ?? ""
+  public func sendPing(_ data: Data, completion: (() -> Void)?) {
+    bayeuxClient.sendPing(data, completion: completion)
   }
   
-  open func isConnected() -> Bool {
-    return self.cometdConnected ?? false
+  public func disconnectFromServer() {
+    subscriber.unsubscribeAllSubscriptions()
+    bayeuxClient.disconnect()
   }
   
-  open func setForceSecure(_ isSecure: Bool) {
-    self.forceSecure = isSecure
+  // MARK: Subscription
+  public func transformModelBlockToSubscription(modelBlock: ModelBlockTuple) -> (state: CometdSubscriptionState, subscription: Subscription?) {
+    subscriber.transformModelBlockToSubscription(modelBlock: modelBlock)
   }
   
-  open func disconnectFromServer() {
-    unsubscribeAllSubscriptions()
-    self.disconnect()
+  public func subscribe(_ models: [CometdSubscriptionModel]) {
+    subscriber.subscribe(models)
   }
   
-  open func sendMessage(_ messageDict: NSDictionary, channel: String) {
-    guard let message = messageDict as? [String: Any] else {
-      log.error("messageDict isn't castable into Dictionary")
-      return
-    }
-    self.publish(message, channel: channel)
+  public func subscribe(_ model: CometdSubscriptionModel) {
+    subscriber.subscribe(model)
   }
   
-  open func sendMessage(_ messageDict: [String: Any], channel: String) {
-    self.publish(messageDict, channel: channel)
+  public func subscribeToChannel(_ channel: String, block: ChannelSubscriptionBlock?) -> (state: CometdSubscriptionState, subscription: Subscription?) {
+    subscriber.subscribeToChannel(channel, block: block)
   }
   
-  open func sendPing(_ data: Data, completion: (() -> Void)?) {
-    writeOperationQueue.async { [unowned self] in
-      self.transport?.sendPing(data, completion: completion)
-    }
+  public func unsubscribeFromChannel(_ subscription: Subscription) {
+    subscriber.unsubscribeFromChannel(subscription)
   }
   
-  open func modelToSubscription(tuple: ModelBlockTuple) -> (state: CometdSubscriptionState, subscription: Subscription?) {
-    let model = tuple.model
-    var sub = Subscription(callback: nil, channel: model.subscriptionUrl, id: 0)
-    if let block = tuple.block {
-      if self.channelSubscriptionBlocks[model.subscriptionUrl] == nil {
-        self.channelSubscriptionBlocks[model.subscriptionUrl] = []
-      }
-      sub.callback = block
-      sub.id = self.channelSubscriptionBlocks[model.subscriptionUrl]?.count ?? 0
-      
-      self.channelSubscriptionBlocks[model.subscriptionUrl]?.append(sub)
-    }
-    
-    if self.isSubscribedToChannel(model.subscriptionUrl) {
-      // If channel is already subscribed
-      log.info("CometdClient subscribeToChannel intial subscription")
-      return (.subscribed(model), sub)
-    } else if self.pendingSubscriptions.contains(where: { $0 == model }) {
-      // If channel is already in pending status
-      log.info("CometdClient subscribeToChannel pending subscription")
-      return (.pending(model), sub)
-    } else if self.cometdConnected == false {
-      // If connection is not yet established
-      self.queuedSubscriptions.append(model)
-      return (.queued(model), sub)
-    } else {
-      return (.subscribingTo(model), sub)
-    }
+  // MARK: Publishing
+  public func publish(_ data: [String: Any], channel: String) {
+    bayeuxClient.publish(data, channel: channel)
   }
-  
-  open func subscribeToChannel(_ channel: String, block: ChannelSubscriptionBlock? = nil) -> (state: CometdSubscriptionState, subscription: Subscription?) {
-    let model = CometdSubscriptionModel(subscriptionUrl: channel, clientId: cometdClientId)
-    let tuple = ModelBlockTuple(model: model, block: block)
-    return modelToSubscription(tuple: tuple)
+}
+
+extension CometdClient: CometdClientTransportAdapterDelegate {
+  // MARK: CometdClientTransportAdapterDelegate
+  func didReceivePong(from adapter: CometdClientTransportAdapter) {
+    delegate?.didReceivePong(from: self)
   }
-  
-  open func subscribeToChannel(_ model: CometdSubscriptionModel, block: ChannelSubscriptionBlock? = nil) -> (state: CometdSubscriptionState, subscription: Subscription?) {
-    let tuple = ModelBlockTuple(model: model, block: block)
-    return modelToSubscription(tuple: tuple)
+  func didWriteError(error: Error, from adapter: CometdClientTransportAdapter) {
+    delegate?.didWriteError(error: error, from: self)
   }
-  
-  open func unsubscribeFromChannel(_ subscription: Subscription) {
-    removeChannelFromQueuedSubscriptions(subscription.channel)
-    
-    var subscriptionArray = self.channelSubscriptionBlocks[subscription.channel]
-    if let index = subscriptionArray?.firstIndex(of: subscription) {
-      subscriptionArray?.remove(at: index)
-    }
-    if subscriptionArray?.count == 0 {
-      self.unsubscribe(subscription.channel)
-      
-      self.channelSubscriptionBlocks[subscription.channel] = nil
-      removeChannelFromOpenSubscriptions(subscription.channel)
-      removeChannelFromPendingSubscriptions(subscription.channel)
-    }
-    
+  func didFailConnection(error: Error?, from adapter: CometdClientTransportAdapter) {
+    delegate?.didFailConnection(error: error, from: self)
   }
-  
-  open func clearSubscriptionFromChannel(_ subscription: Subscription) {
-    removeChannelFromQueuedSubscriptions(subscription.channel)
-    // Empty the multi-callback storage array
-    self.channelSubscriptionBlocks[subscription.channel]?.removeAll()
-    // Unsubscribe from the server
-    self.unsubscribe(subscription.channel)
-    
-    self.channelSubscriptionBlocks[subscription.channel] = nil
-    removeChannelFromOpenSubscriptions(subscription.channel)
-    removeChannelFromPendingSubscriptions(subscription.channel)
+  func didDisconnected(error: Error?, from adapter: CometdClientTransportAdapter) {
+    delegate?.didDisconnected(error: error, from: self)
+  }
+}
+
+extension CometdClient: CometdClientMessageResolverDelegate {
+  // MARK: CometdClientMessageResolverDelegate
+  func didReceiveMessage(dictionary: NSDictionary, from channel: String, resolver: CometdClientMessageResolver) {
+    delegate?.didReceiveMessage(dictionary: dictionary, from: channel, client: self)
+  }
+  func handshakeDidSucceeded(dictionary: NSDictionary, from resolver: CometdClientMessageResolver) {
+    delegate?.handshakeDidSucceeded(dictionary: dictionary, from: self)
+  }
+  func handshakeDidFailed(from resolver: CometdClientMessageResolver) {
+    delegate?.handshakeDidFailed(from: self)
+  }
+  func didDisconnected(from adapter: CometdClientMessageResolver) {
+    delegate?.didDisconnected(error: nil, from: self)
+  }
+  func didAdvisedToReconnect(from adapter: CometdClientMessageResolver) {
+    delegate?.didAdvisedToReconnect(from: self)
+  }
+  func didConnected(from adapter: CometdClientMessageResolver) {
+    delegate?.didConnected(from: self)
+  }
+  func didSubscribeToChannel(channel: String, from resolver: CometdClientMessageResolver) {
+    delegate?.didSubscribeToChannel(channel: channel, from: self)
+  }
+  func didUnsubscribeFromChannel(channel: String, from resolver: CometdClientMessageResolver) {
+    delegate?.didUnsubscribeFromChannel(channel: channel, from: self)
+  }
+  func subscriptionFailedWithError(error: SubscriptionError, from resolver: CometdClientMessageResolver) {
+    delegate?.subscriptionFailedWithError(error: error, from: self)
   }
 }

@@ -36,6 +36,10 @@ dependencies: [
 ]
 ```
 
+## TODOs
+
+- [ ] Implement Codable objects for BayeuxClient & CometdClientMessageResolver
+
 ## License
 
 CometDClient is licensed under the MIT License.
@@ -49,3 +53,7 @@ CometDClient is licensed under the MIT License.
 ### Steven WATREMEZ
 * https://github.com/StevenWatremez
 * steven@insurlytech.com
+
+### Jérémie GOAS
+* https://github.com/jgoas
+* jeremie@insurlytech.com

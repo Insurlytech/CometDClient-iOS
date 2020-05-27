@@ -6,6 +6,8 @@
 //
 // Adapted from https://github.com/hamin/FayeSwift
 
+import Foundation
+
 // MARK: - Transport
 public protocol Transport {
   var isConnected: Bool { get }
@@ -13,6 +15,7 @@ public protocol Transport {
   func writeString(_ aString: String)
   func openConnection()
   func closeConnection()
+  func sendPing(_ data: Data, completion: (() -> Void)?)
 }
 
 public protocol TransportDelegate: class {
