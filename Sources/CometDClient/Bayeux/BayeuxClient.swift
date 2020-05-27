@@ -15,12 +15,12 @@ class BayeuxClient: BayeuxClientContract {
   private let log: XCGLogger
   private let timeOut: Int
   private var messageNumber: UInt32 = 0
+  private var handshakeFields: [String: Any]?
   
   var transport: Transport?
   var clientId: String?
   var isConnected = false
   var connectionInitiated = false
-  var handshakeFields: [String: Any]?
   
   // MARK: Lifecycle
   init(log: XCGLogger, timeOut: Int) {
@@ -74,8 +74,16 @@ class BayeuxClient: BayeuxClientContract {
     }
   }
   
-  func openConnection() {
-    transport?.openConnection()
+  func openConnection(with fields: [String: Any]) {
+    handshakeFields = fields
+    log.debug("CometdClient handshake")
+    
+    if connectionInitiated != true {
+      transport?.openConnection()
+      connectionInitiated = true
+    } else {
+      log.debug("Cometd: Connection established")
+    }
   }
   
   // Bayeux Connect

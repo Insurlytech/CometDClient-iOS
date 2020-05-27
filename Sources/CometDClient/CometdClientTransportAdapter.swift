@@ -9,14 +9,23 @@
 import Foundation
 import XCGLogger
 
+protocol CometdClientTransportAdapterDelegate: class {
+  func didReceivePong(from adapter: CometdClientTransportAdapter)
+  func didWriteError(error: Error, from adapter: CometdClientTransportAdapter)
+  func didFailConnection(error: Error?, from adapter: CometdClientTransportAdapter)
+  func didDisconnected(error: Error?, from adapter: CometdClientTransportAdapter)
+}
+
 // MARK: Transport Delegate
 class CometdClientTransportAdapter: TransportDelegate {
+  typealias Delegate = (CometdClientTransportAdapterDelegate & CometdClientMessageResolverDelegate)
+  
   // MARK: Properties
   private let bayeuxClient: BayeuxClientContract
   private let subscriber: SubscriberContract
   private let log: XCGLogger
   
-  weak var delegate: CometdClientDelegate?
+  weak var delegate: Delegate?
   
   private lazy var messageResolver = CometdClientMessageResolver(
     bayeuxClient: bayeuxClient,
@@ -26,7 +35,7 @@ class CometdClientTransportAdapter: TransportDelegate {
   )
   
   // MARK: Lifecycle
-  init(bayeuxClient: BayeuxClientContract, subscriber: SubscriberContract, log: XCGLogger, delegate: CometdClientDelegate?) {
+  init(bayeuxClient: BayeuxClientContract, subscriber: SubscriberContract, log: XCGLogger, delegate: Delegate?) {
     self.bayeuxClient = bayeuxClient
     self.subscriber = subscriber
     self.log = log
@@ -44,18 +53,18 @@ class CometdClientTransportAdapter: TransportDelegate {
     log.debug("CometdClient didDisconnect")
     bayeuxClient.connectionInitiated = false
     bayeuxClient.isConnected = false
-    delegate?.disconnectedFromServer()
+    delegate?.didDisconnected(error: error, from: self)
   }
   
   public func didFailConnection(_ error: Error?) {
     log.warning("CometdClient didFailConnection")
     bayeuxClient.connectionInitiated = false
     bayeuxClient.isConnected = false
-    delegate?.connectionFailed()
+    delegate?.didFailConnection(error: error, from: self)
   }
   
   public func didWriteError(_ error: Error?) {
-    delegate?.cometdClientError(error: error ?? CometdSocketError.transportWrite)
+    delegate?.didWriteError(error: error ?? CometdSocketError.transportWrite, from: self)
   }
   
   public func didReceiveMessage(_ text: String) {
@@ -63,6 +72,6 @@ class CometdClientTransportAdapter: TransportDelegate {
   }
   
   public func didReceivePong() {
-    delegate?.pongReceived()
+    delegate?.didReceivePong(from: self)
   }
 }

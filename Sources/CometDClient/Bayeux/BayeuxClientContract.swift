@@ -12,11 +12,10 @@ protocol BayeuxClientContract: class {
   var clientId: String? { get set }
   var isConnected: Bool { get set }
   var connectionInitiated: Bool { get set }
-  var handshakeFields: [String: Any]? { get set }
   
   func handshake()
   func sendPing(_ data: Data, completion: (() -> Void)?)
-  func openConnection()
+  func openConnection(with fields: [String: Any])
   func connect()
   func closeConnection()
   func disconnect()

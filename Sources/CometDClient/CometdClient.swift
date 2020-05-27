@@ -14,7 +14,7 @@ public class CometdClient: CometdClientContract {
   // MARK: Properties
   private lazy var bayeuxClient: BayeuxClientContract = BayeuxClient(log: log, timeOut: timeOut)
   private lazy var subscriber: SubscriberContract = Subscriber(bayeuxClient: bayeuxClient, log: log)
-  private lazy var transportAdapter = CometdClientTransportAdapter(bayeuxClient: bayeuxClient, subscriber: subscriber, log: log, delegate: delegate)
+  private lazy var transportAdapter = CometdClientTransportAdapter(bayeuxClient: bayeuxClient, subscriber: subscriber, log: log, delegate: self)
   
   private var forceSecure = false
   /// Default in 10 seconds
@@ -59,24 +59,16 @@ public class CometdClient: CometdClientContract {
   
   // MARK: Connection
   public func handshake(fields: [String: Any]) {
-    self.bayeuxClient.handshakeFields = fields
-    log.debug("CometdClient handshake")
-    
-    if self.bayeuxClient.connectionInitiated != true {
-      self.bayeuxClient.openConnection()
-      self.bayeuxClient.connectionInitiated = true
-    } else {
-      log.debug("Cometd: Connection established")
-    }
+    bayeuxClient.openConnection(with: fields)
   }
   
   public func sendPing(_ data: Data, completion: (() -> Void)?) {
-    self.bayeuxClient.sendPing(data, completion: completion)
+    bayeuxClient.sendPing(data, completion: completion)
   }
   
   public func disconnectFromServer() {
-    self.subscriber.unsubscribeAllSubscriptions()
-    self.bayeuxClient.disconnect()
+    subscriber.unsubscribeAllSubscriptions()
+    bayeuxClient.disconnect()
   }
   
   // MARK: Subscription
@@ -103,5 +95,52 @@ public class CometdClient: CometdClientContract {
   // MARK: Publishing
   public func publish(_ data: [String: Any], channel: String) {
     bayeuxClient.publish(data, channel: channel)
+  }
+}
+
+extension CometdClient: CometdClientTransportAdapterDelegate {
+  // MARK: CometdClientTransportAdapterDelegate
+  func didReceivePong(from adapter: CometdClientTransportAdapter) {
+    delegate?.didReceivePong(from: self)
+  }
+  func didWriteError(error: Error, from adapter: CometdClientTransportAdapter) {
+    delegate?.didWriteError(error: error, from: self)
+  }
+  func didFailConnection(error: Error?, from adapter: CometdClientTransportAdapter) {
+    delegate?.didFailConnection(error: error, from: self)
+  }
+  func didDisconnected(error: Error?, from adapter: CometdClientTransportAdapter) {
+    delegate?.didDisconnected(error: error, from: self)
+  }
+}
+
+extension CometdClient: CometdClientMessageResolverDelegate {
+  // MARK: CometdClientMessageResolverDelegate
+  func didReceiveMessage(dictionary: NSDictionary, from channel: String, resolver: CometdClientMessageResolver) {
+    delegate?.didReceiveMessage(dictionary: dictionary, from: channel, client: self)
+  }
+  func handshakeDidSucceeded(dictionary: NSDictionary, from resolver: CometdClientMessageResolver) {
+    delegate?.handshakeDidSucceeded(dictionary: dictionary, from: self)
+  }
+  func handshakeDidFailed(from resolver: CometdClientMessageResolver) {
+    delegate?.handshakeDidFailed(from: self)
+  }
+  func didDisconnected(from adapter: CometdClientMessageResolver) {
+    delegate?.didDisconnected(error: nil, from: self)
+  }
+  func didAdvisedToReconnect(from adapter: CometdClientMessageResolver) {
+    delegate?.didAdvisedToReconnect(from: self)
+  }
+  func didConnected(from adapter: CometdClientMessageResolver) {
+    delegate?.didConnected(from: self)
+  }
+  func didSubscribeToChannel(channel: String, from resolver: CometdClientMessageResolver) {
+    delegate?.didSubscribeToChannel(channel: channel, from: self)
+  }
+  func didUnsubscribeFromChannel(channel: String, from resolver: CometdClientMessageResolver) {
+    delegate?.didUnsubscribeFromChannel(channel: channel, from: self)
+  }
+  func subscriptionFailedWithError(error: SubscriptionError, from resolver: CometdClientMessageResolver) {
+    delegate?.subscriptionFailedWithError(error: error, from: self)
   }
 }
