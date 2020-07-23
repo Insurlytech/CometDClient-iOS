@@ -21,4 +21,7 @@ public enum Bayeux: String {
   case error = "error"
   case advice = "advice"
   case ext = "ext"
+  case code = "code"
+  case message = "message"
+  case context = "context"
 }

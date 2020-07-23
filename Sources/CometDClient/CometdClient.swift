@@ -103,14 +103,14 @@ extension CometdClient: CometdClientTransportAdapterDelegate {
   func didReceivePong(from adapter: CometdClientTransportAdapter) {
     delegate?.didReceivePong(from: self)
   }
-  func didWriteError(error: Error, from adapter: CometdClientTransportAdapter) {
-    delegate?.didWriteError(error: error, from: self)
+  func didWriteError(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter) {
+    delegate?.didWriteError(error: CometDClientError.write(error: error), from: self)
   }
-  func didFailConnection(error: Error?, from adapter: CometdClientTransportAdapter) {
-    delegate?.didFailConnection(error: error, from: self)
+  func didLostConnection(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter) {
+    delegate?.didLostConnection(error: CometDClientError.lostConnection(error: error), from: self)
   }
-  func didDisconnected(error: Error?, from adapter: CometdClientTransportAdapter) {
-    delegate?.didDisconnected(error: error, from: self)
+  func didDisconnected(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter) {
+    delegate?.didDisconnected(error: CometDClientError.lostConnection(error: error), from: self)
   }
 }
 
@@ -122,8 +122,8 @@ extension CometdClient: CometdClientMessageResolverDelegate {
   func handshakeDidSucceeded(dictionary: NSDictionary, from resolver: CometdClientMessageResolver) {
     delegate?.handshakeDidSucceeded(dictionary: dictionary, from: self)
   }
-  func handshakeDidFailed(from resolver: CometdClientMessageResolver) {
-    delegate?.handshakeDidFailed(from: self)
+  func handshakeDidFailed(error: CometDClientError, from resolver: CometdClientMessageResolver) {
+    delegate?.handshakeDidFailed(error: error, from: self)
   }
   func didDisconnected(from adapter: CometdClientMessageResolver) {
     delegate?.didDisconnected(error: nil, from: self)
@@ -140,7 +140,7 @@ extension CometdClient: CometdClientMessageResolverDelegate {
   func didUnsubscribeFromChannel(channel: String, from resolver: CometdClientMessageResolver) {
     delegate?.didUnsubscribeFromChannel(channel: channel, from: self)
   }
-  func subscriptionFailedWithError(error: SubscriptionError, from resolver: CometdClientMessageResolver) {
+  func subscriptionFailedWithError(error: CometDClientError, from resolver: CometdClientMessageResolver) {
     delegate?.subscriptionFailedWithError(error: error, from: self)
   }
 }

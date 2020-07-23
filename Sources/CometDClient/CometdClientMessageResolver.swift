@@ -12,13 +12,13 @@ import XCGLogger
 protocol CometdClientMessageResolverDelegate: class {
   func didReceiveMessage(dictionary: NSDictionary, from channel: String, resolver: CometdClientMessageResolver)
   func handshakeDidSucceeded(dictionary: NSDictionary, from resolver: CometdClientMessageResolver)
-  func handshakeDidFailed(from resolver: CometdClientMessageResolver)
+  func handshakeDidFailed(error: CometDClientError,from resolver: CometdClientMessageResolver)
   func didDisconnected(from adapter: CometdClientMessageResolver)
   func didAdvisedToReconnect(from adapter: CometdClientMessageResolver)
   func didConnected(from adapter: CometdClientMessageResolver)
   func didSubscribeToChannel(channel: String, from resolver: CometdClientMessageResolver)
   func didUnsubscribeFromChannel(channel: String, from resolver: CometdClientMessageResolver)
-  func subscriptionFailedWithError(error: SubscriptionError, from resolver: CometdClientMessageResolver)
+  func subscriptionFailedWithError(error: CometDClientError, from resolver: CometdClientMessageResolver)
 }
 
 class CometdClientMessageResolver {
@@ -108,7 +108,8 @@ class CometdClientMessageResolver {
       bayeuxClient.connect()
       subscriber.subscribeQueuedSubscriptions()
     } else {
-      delegate?.handshakeDidFailed(from: self)
+      let error = message[Bayeux.ext.rawValue].dictionary?[Bayeux.error.rawValue]?.dictionaryObject ?? [:]
+      delegate?.handshakeDidFailed(error: .handshake(error: error),from: self)
       bayeuxClient.isConnected = false
       
       bayeuxClient.closeConnection()
@@ -160,10 +161,10 @@ class CometdClientMessageResolver {
       } else {
         log.warning("Cometd: Missing subscription for Subscribe")
       }
-    } else if let error = message[Bayeux.error.rawValue].string,
+    } else if let reason = message[Bayeux.error.rawValue].string,
       let subscription = message[Bayeux.subscription.rawValue].string { // Subscribe Failed
       subscriber.removeChannelFromPendingSubscriptions(subscription)
-      delegate?.subscriptionFailedWithError(error: SubscriptionError.error(subscription: subscription, error: error), from: self)
+      delegate?.subscriptionFailedWithError(error: CometDClientError.subscription(subscription: subscription, reason: reason), from: self)
     }
   }
   

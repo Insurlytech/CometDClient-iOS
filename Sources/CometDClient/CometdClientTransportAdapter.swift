@@ -11,9 +11,9 @@ import XCGLogger
 
 protocol CometdClientTransportAdapterDelegate: class {
   func didReceivePong(from adapter: CometdClientTransportAdapter)
-  func didWriteError(error: Error, from adapter: CometdClientTransportAdapter)
-  func didFailConnection(error: Error?, from adapter: CometdClientTransportAdapter)
-  func didDisconnected(error: Error?, from adapter: CometdClientTransportAdapter)
+  func didWriteError(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter)
+  func didLostConnection(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter)
+  func didDisconnected(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter)
 }
 
 // MARK: Transport Delegate
@@ -49,22 +49,23 @@ class CometdClientTransportAdapter: TransportDelegate {
     bayeuxClient.handshake()
   }
   
-  public func didDisconnect(_ error: Error?) {
+  
+  func didDisconnect(_ error: WebsocketTransportError) {
     log.debug("CometdClient didDisconnect")
     bayeuxClient.connectionInitiated = false
     bayeuxClient.isConnected = false
     delegate?.didDisconnected(error: error, from: self)
   }
   
-  public func didFailConnection(_ error: Error?) {
+  func didLostConnection(_ error: WebsocketTransportError) {
     log.warning("CometdClient didFailConnection")
     bayeuxClient.connectionInitiated = false
     bayeuxClient.isConnected = false
-    delegate?.didFailConnection(error: error, from: self)
+    delegate?.didLostConnection(error: error, from: self)
   }
   
-  public func didWriteError(_ error: Error?) {
-    delegate?.didWriteError(error: error ?? CometdSocketError.transportWrite, from: self)
+  func didWriteError(_ error: WebsocketTransportError?) {
+    delegate?.didWriteError(error: error ?? WebsocketTransportError.write(error: nil), from: self)
   }
   
   public func didReceiveMessage(_ text: String) {

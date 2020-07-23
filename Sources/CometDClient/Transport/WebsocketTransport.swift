@@ -71,8 +71,7 @@ extension WebsocketTransport: WebSocketDelegate {
     case .disconnected(let reason, let code):
       log.debug("Websocket is disconnected: \(reason) with code: \(code)")
       isConnected = false
-      let error = NSError(domain: "CometDClient", code: Int(code), userInfo: [NSLocalizedDescriptionKey: reason]) as Error
-      delegate?.didDisconnect(error)
+      delegate?.didDisconnect(.disconnected(reason: reason, code: Int(code)))
     case .text(let string):
       log.debug("Websocket received text: \(string)")
       self.delegate?.didReceiveMessage(string)
@@ -87,7 +86,7 @@ extension WebsocketTransport: WebSocketDelegate {
       log.debug("Websocket viability changed: \(connectionIsViable)")
       if !connectionIsViable && connectionIsViable != isConnected {
         isConnected = false
-        self.delegate?.didFailConnection(CometdSocketError.lostConnection)
+        self.delegate?.didLostConnection(.noLongerViable)
       }
     case .reconnectSuggested(let value):
       log.debug("Websocket reconnect suggested: \(value)")
@@ -95,14 +94,14 @@ extension WebsocketTransport: WebSocketDelegate {
       log.debug("Websocket cancelled")
       if isConnected {
         isConnected = false
-        self.delegate?.didFailConnection(CometdSocketError.lostConnection)
+        self.delegate?.didLostConnection(.cancelled)
       }
     case .error(let error):
-      log.debug("Websocket error: \(error?.localizedDescription ?? "")")
-      self.delegate?.didWriteError(error)
+      log.error("Websocket error: \(error?.localizedDescription ?? "")")
+      self.delegate?.didWriteError(.write(error: error))
       if isConnected {
         isConnected = false
-        self.delegate?.didFailConnection(CometdSocketError.lostConnection)
+        self.delegate?.didLostConnection(.noLongerViable)
       }
     }
   }

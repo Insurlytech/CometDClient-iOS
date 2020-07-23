@@ -20,9 +20,9 @@ public protocol Transport {
 
 public protocol TransportDelegate: class {
   func didConnect()
-  func didFailConnection(_ error: Error?)
-  func didDisconnect(_ error: Error?)
-  func didWriteError(_ error: Error?)
+  func didLostConnection(_ error: WebsocketTransportError)
+  func didDisconnect(_ error: WebsocketTransportError)
+  func didWriteError(_ error: WebsocketTransportError?)
   func didReceiveMessage(_ text: String)
   func didReceivePong()
 }
