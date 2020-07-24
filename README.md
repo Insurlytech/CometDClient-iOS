@@ -18,7 +18,7 @@ Check out [Get Started](http://cocoapods.org/) tab on [cocoapods.org](http://coc
 
 To use CometDClient in your 'Podfile':
   
-    pod 'CometDClient', '~> 1.0.0'
+    pod 'CometDClient', '~> 1.1.0'
 
 Then run:
 
