@@ -12,13 +12,13 @@ import XCGLogger
 protocol CometdClientMessageResolverDelegate: class {
   func didReceiveMessage(dictionary: NSDictionary, from channel: String, resolver: CometdClientMessageResolver)
   func handshakeDidSucceeded(dictionary: NSDictionary, from resolver: CometdClientMessageResolver)
-  func handshakeDidFailed(error: CometDClientError,from resolver: CometdClientMessageResolver)
+  func handshakeDidFailed(error: Error,from resolver: CometdClientMessageResolver)
   func didDisconnected(from adapter: CometdClientMessageResolver)
   func didAdvisedToReconnect(from adapter: CometdClientMessageResolver)
   func didConnected(from adapter: CometdClientMessageResolver)
   func didSubscribeToChannel(channel: String, from resolver: CometdClientMessageResolver)
   func didUnsubscribeFromChannel(channel: String, from resolver: CometdClientMessageResolver)
-  func subscriptionFailedWithError(error: CometDClientError, from resolver: CometdClientMessageResolver)
+  func subscriptionFailedWithError(error: Error, from resolver: CometdClientMessageResolver)
 }
 
 class CometdClientMessageResolver {
@@ -27,15 +27,17 @@ class CometdClientMessageResolver {
   private let subscriber: SubscriberContract
   private let log: XCGLogger
   private let readOperationQueue = DispatchQueue(label: "com.cometdclient.read", attributes: [])
+  private weak var recorder: CometDClientRecorder?
   
   weak var delegate: CometdClientMessageResolverDelegate?
   
   // MARK: Lifecycle
-  init(bayeuxClient: BayeuxClientContract, subscriber: SubscriberContract, log: XCGLogger, delegate: CometdClientMessageResolverDelegate?) {
+  init(bayeuxClient: BayeuxClientContract, subscriber: SubscriberContract, log: XCGLogger, delegate: CometdClientMessageResolverDelegate?, recorder: CometDClientRecorder?) {
     self.bayeuxClient = bayeuxClient
     self.subscriber = subscriber
     self.log = log
     self.delegate = delegate
+    self.recorder = recorder
   }
   
   // MARK: Resolve
@@ -108,8 +110,10 @@ class CometdClientMessageResolver {
       bayeuxClient.connect()
       subscriber.subscribeQueuedSubscriptions()
     } else {
-      let error = message[Bayeux.ext.rawValue].dictionary?[Bayeux.error.rawValue]?.dictionaryObject ?? [:]
-      delegate?.handshakeDidFailed(error: .handshake(error: error),from: self)
+      let json = message[Bayeux.ext.rawValue].dictionary?[Bayeux.error.rawValue]?.dictionaryObject ?? [:]
+      let error = CometdClientMessageResolverError.handshake(json: json)
+      delegate?.handshakeDidFailed(error: error, from: self)
+      recorder?.record(error: error.toNSError())
       bayeuxClient.isConnected = false
       
       bayeuxClient.closeConnection()
@@ -164,7 +168,9 @@ class CometdClientMessageResolver {
     } else if let reason = message[Bayeux.error.rawValue].string,
       let subscription = message[Bayeux.subscription.rawValue].string { // Subscribe Failed
       subscriber.removeChannelFromPendingSubscriptions(subscription)
-      delegate?.subscriptionFailedWithError(error: CometDClientError.subscription(subscription: subscription, reason: reason), from: self)
+      let error = CometdClientMessageResolverError.subscription(subscription: subscription, reason: reason)
+      delegate?.subscriptionFailedWithError(error: error, from: self)
+      recorder?.record(error: error.toNSError())
     }
   }
   

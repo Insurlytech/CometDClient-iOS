@@ -14,7 +14,13 @@ public class CometdClient: CometdClientContract {
   // MARK: Properties
   private lazy var bayeuxClient: BayeuxClientContract = BayeuxClient(log: log, timeOut: timeOut)
   private lazy var subscriber: SubscriberContract = Subscriber(bayeuxClient: bayeuxClient, log: log)
-  private lazy var transportAdapter = CometdClientTransportAdapter(bayeuxClient: bayeuxClient, subscriber: subscriber, log: log, delegate: self)
+  private lazy var transportAdapter = CometdClientTransportAdapter(
+    bayeuxClient: bayeuxClient,
+    subscriber: subscriber,
+    log: log,
+    delegate: self,
+    recorder: recorder
+  )
   
   private var forceSecure = false
   /// Default in 10 seconds
@@ -24,6 +30,7 @@ public class CometdClient: CometdClientContract {
   public var isConnected: Bool { bayeuxClient.isConnected }
   public var clientId: String? { bayeuxClient.clientId }
   
+  public private(set) weak var recorder: CometDClientRecorder?
   public weak var delegate: CometdClientDelegate?
     
   // MARK: Lifecycle
@@ -36,7 +43,7 @@ public class CometdClient: CometdClientContract {
     self.forceSecure = isSecure
   }
   
-  public func configure(url: String, backoffIncrement: Int = 1000, maxBackoff: Int = 60000, appendMessageTypeToURL: Bool = false) {
+  public func configure(url: String, backoffIncrement: Int = 1000, maxBackoff: Int = 60000, appendMessageTypeToURL: Bool = false, recorder: CometDClientRecorder?) {
     // Check protocol (only websocket for now)
     let rawUrl = URL(string: url)
     guard let path = rawUrl?.path, let host = rawUrl?.host else {
@@ -52,7 +59,8 @@ public class CometdClient: CometdClientContract {
       cometdURLString = scheme + host + path
     }
     
-    let transport = WebsocketTransport(url: cometdURLString, logLevel: log.outputLevel)
+    self.recorder = recorder
+    let transport = WebsocketTransport(url: cometdURLString, logLevel: log.outputLevel, recorder: recorder)
     transport.delegate = transportAdapter
     self.bayeuxClient.transport = transport
   }
@@ -103,14 +111,14 @@ extension CometdClient: CometdClientTransportAdapterDelegate {
   func didReceivePong(from adapter: CometdClientTransportAdapter) {
     delegate?.didReceivePong(from: self)
   }
-  func didWriteError(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter) {
-    delegate?.didWriteError(error: CometDClientError.write(error: error), from: self)
+  func didWriteError(error: Error, from adapter: CometdClientTransportAdapter) {
+    delegate?.didWriteError(error: CometDClientError.write, from: self)
   }
-  func didLostConnection(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter) {
-    delegate?.didLostConnection(error: CometDClientError.lostConnection(error: error), from: self)
+  func didLostConnection(error: Error, from adapter: CometdClientTransportAdapter) {
+    delegate?.didLostConnection(error: CometDClientError.lostConnection, from: self)
   }
-  func didDisconnected(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter) {
-    delegate?.didDisconnected(error: CometDClientError.lostConnection(error: error), from: self)
+  func didDisconnected(error: Error, from adapter: CometdClientTransportAdapter) {
+    delegate?.didDisconnected(error: CometDClientError.lostConnection, from: self)
   }
 }
 
@@ -122,8 +130,15 @@ extension CometdClient: CometdClientMessageResolverDelegate {
   func handshakeDidSucceeded(dictionary: NSDictionary, from resolver: CometdClientMessageResolver) {
     delegate?.handshakeDidSucceeded(dictionary: dictionary, from: self)
   }
-  func handshakeDidFailed(error: CometDClientError, from resolver: CometdClientMessageResolver) {
-    delegate?.handshakeDidFailed(error: error, from: self)
+  func handshakeDidFailed(error: Error, from resolver: CometdClientMessageResolver) {
+    let handshakeError: CometDClientError
+    switch error {
+    case let error as CometdClientMessageResolverError where error.code == CometdClientMessageResolverError.Constant.SIMPLE_UNMATCHED_LOGIN_PASSWORD:
+      handshakeError = .handshake(reason: HandshakeError.wrongCredential)
+    default:
+      handshakeError = .handshake(reason: nil)
+    }
+    delegate?.handshakeDidFailed(error: handshakeError, from: self)
   }
   func didDisconnected(from adapter: CometdClientMessageResolver) {
     delegate?.didDisconnected(error: nil, from: self)
@@ -140,7 +155,7 @@ extension CometdClient: CometdClientMessageResolverDelegate {
   func didUnsubscribeFromChannel(channel: String, from resolver: CometdClientMessageResolver) {
     delegate?.didUnsubscribeFromChannel(channel: channel, from: self)
   }
-  func subscriptionFailedWithError(error: CometDClientError, from resolver: CometdClientMessageResolver) {
-    delegate?.subscriptionFailedWithError(error: error, from: self)
+  func subscriptionFailedWithError(error: Error, from resolver: CometdClientMessageResolver) {
+    delegate?.subscriptionFailedWithError(error: CometDClientError.subscription, from: self)
   }
 }

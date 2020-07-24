@@ -11,9 +11,9 @@ import XCGLogger
 
 protocol CometdClientTransportAdapterDelegate: class {
   func didReceivePong(from adapter: CometdClientTransportAdapter)
-  func didWriteError(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter)
-  func didLostConnection(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter)
-  func didDisconnected(error: WebsocketTransportError, from adapter: CometdClientTransportAdapter)
+  func didWriteError(error: Error, from adapter: CometdClientTransportAdapter)
+  func didLostConnection(error: Error, from adapter: CometdClientTransportAdapter)
+  func didDisconnected(error: Error, from adapter: CometdClientTransportAdapter)
 }
 
 // MARK: Transport Delegate
@@ -24,6 +24,7 @@ class CometdClientTransportAdapter: TransportDelegate {
   private let bayeuxClient: BayeuxClientContract
   private let subscriber: SubscriberContract
   private let log: XCGLogger
+  private weak var recorder: CometDClientRecorder?
   
   weak var delegate: Delegate?
   
@@ -31,15 +32,17 @@ class CometdClientTransportAdapter: TransportDelegate {
     bayeuxClient: bayeuxClient,
     subscriber: subscriber,
     log: log,
-    delegate: delegate
+    delegate: delegate,
+    recorder: recorder
   )
   
   // MARK: Lifecycle
-  init(bayeuxClient: BayeuxClientContract, subscriber: SubscriberContract, log: XCGLogger, delegate: Delegate?) {
+  init(bayeuxClient: BayeuxClientContract, subscriber: SubscriberContract, log: XCGLogger, delegate: Delegate?, recorder: CometDClientRecorder?) {
     self.bayeuxClient = bayeuxClient
     self.subscriber = subscriber
     self.log = log
     self.delegate = delegate
+    self.recorder = recorder
   }
   
   // MARK: TransportDelegate
@@ -50,21 +53,21 @@ class CometdClientTransportAdapter: TransportDelegate {
   }
   
   
-  func didDisconnect(_ error: WebsocketTransportError) {
+  func didDisconnect(_ error: Error) {
     log.debug("CometdClient didDisconnect")
     bayeuxClient.connectionInitiated = false
     bayeuxClient.isConnected = false
     delegate?.didDisconnected(error: error, from: self)
   }
   
-  func didLostConnection(_ error: WebsocketTransportError) {
+  func didLostConnection(_ error: Error) {
     log.warning("CometdClient didFailConnection")
     bayeuxClient.connectionInitiated = false
     bayeuxClient.isConnected = false
     delegate?.didLostConnection(error: error, from: self)
   }
   
-  func didWriteError(_ error: WebsocketTransportError?) {
+  func didWriteError(_ error: Error?) {
     delegate?.didWriteError(error: error ?? WebsocketTransportError.write(error: nil), from: self)
   }
   
