@@ -13,8 +13,9 @@ public protocol CometdClientContract: class {
   var clientId: String? { get }
   var log: XCGLogger { get }
   var delegate: CometdClientDelegate? { get set }
+  var recorder: CometDClientRecorder? { get }
   
-  func configure(url: String, backoffIncrement: Int, maxBackoff: Int, appendMessageTypeToURL: Bool)
+  func configure(url: String, backoffIncrement: Int, maxBackoff: Int, appendMessageTypeToURL: Bool, recorder: CometDClientRecorder?)
   
   func handshake(fields: [String: Any])
   func disconnectFromServer()
@@ -30,7 +31,7 @@ public protocol CometdClientContract: class {
 }
 
 public extension CometdClientContract {
-  func configure(url: String) {
-    configure(url: url, backoffIncrement: 1000, maxBackoff: 60000, appendMessageTypeToURL: false)
+  func configure(url: String, recorder: CometDClientRecorder?) {
+    configure(url: url, backoffIncrement: 1000, maxBackoff: 60000, appendMessageTypeToURL: false, recorder: recorder)
   }
 }

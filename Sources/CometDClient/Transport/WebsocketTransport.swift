@@ -13,6 +13,7 @@ import XCGLogger
 // MARK: - WebsocketTransport
 class WebsocketTransport: Transport {
   // MARK: Properties
+  private weak var recorder: CometDClientRecorder?
   private var urlString: String
   private var webSocket: WebSocket?
   weak var delegate: TransportDelegate?
@@ -21,8 +22,9 @@ class WebsocketTransport: Transport {
   let log = XCGLogger(identifier: "websocketLogger", includeDefaultDestinations: true)
   
   // MARK: Init
-  init(url: String, logLevel: XCGLogger.Level = .severe) {
+  init(url: String, logLevel: XCGLogger.Level = .severe, recorder: CometDClientRecorder?) {
     self.urlString = url
+    self.recorder = recorder
     log.setup(level: logLevel)
   }
   
@@ -71,8 +73,9 @@ extension WebsocketTransport: WebSocketDelegate {
     case .disconnected(let reason, let code):
       log.debug("Websocket is disconnected: \(reason) with code: \(code)")
       isConnected = false
-      let error = NSError(domain: "CometDClient", code: Int(code), userInfo: [NSLocalizedDescriptionKey: reason]) as Error
+      let error = WebsocketTransportError.disconnected(reason: reason, code: Int(code))
       delegate?.didDisconnect(error)
+      recorder?.record(error: error.toNSError())
     case .text(let string):
       log.debug("Websocket received text: \(string)")
       self.delegate?.didReceiveMessage(string)
@@ -87,7 +90,9 @@ extension WebsocketTransport: WebSocketDelegate {
       log.debug("Websocket viability changed: \(connectionIsViable)")
       if !connectionIsViable && connectionIsViable != isConnected {
         isConnected = false
-        self.delegate?.didFailConnection(CometdSocketError.lostConnection)
+        let error = WebsocketTransportError.noLongerViable
+        self.delegate?.didLostConnection(error)
+        recorder?.record(error: error.toNSError())
       }
     case .reconnectSuggested(let value):
       log.debug("Websocket reconnect suggested: \(value)")
@@ -95,14 +100,20 @@ extension WebsocketTransport: WebSocketDelegate {
       log.debug("Websocket cancelled")
       if isConnected {
         isConnected = false
-        self.delegate?.didFailConnection(CometdSocketError.lostConnection)
+        let error = WebsocketTransportError.cancelled
+        self.delegate?.didLostConnection(error)
+        recorder?.record(error: error.toNSError())
       }
     case .error(let error):
-      log.debug("Websocket error: \(error?.localizedDescription ?? "")")
+      log.error("Websocket error: \(error?.localizedDescription ?? "")")
+      let error = WebsocketTransportError.write(error: error)
       self.delegate?.didWriteError(error)
+      recorder?.record(error: error.toNSError())
       if isConnected {
         isConnected = false
-        self.delegate?.didFailConnection(CometdSocketError.lostConnection)
+        let error = WebsocketTransportError.noLongerViable
+        self.delegate?.didLostConnection(error)
+        recorder?.record(error: error.toNSError())
       }
     }
   }
