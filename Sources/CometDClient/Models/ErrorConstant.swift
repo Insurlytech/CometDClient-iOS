@@ -11,5 +11,4 @@ enum ErrorConstant {
   static let domain = "cometDClient"
   static let code = "code"
   static let subscription = "subscription"
-  static let context = "context"
 }
