@@ -44,8 +44,7 @@ enum CometdClientMessageResolverError: Error {
       return NSError(domain: ErrorConstant.domain, code: codeNumber, userInfo: [
         NSLocalizedDescriptionKey: NSLocalizedString("Hanshake failed", comment: ""),
         NSLocalizedFailureReasonErrorKey: NSLocalizedString(json[Bayeux.message.rawValue] as? String ?? "", comment: ""),
-        ErrorConstant.code: self.code,
-        ErrorConstant.context: json[Bayeux.context.rawValue] as? [String: Any] ?? [:]
+        ErrorConstant.code: self.code
       ])
     }
   }
