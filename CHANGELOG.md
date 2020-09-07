@@ -1,6 +1,10 @@
 # CHANGELOG
 All notable changes to this project will be documented in this file.
 
+### [1.1.1](https://github.com/Insurlytech/CometDClient-iOS/1.1.1)
+
+* Issue [#7](https://github.com/Insurlytech/CometDClient-iOS/issues/7) - Remove context in error to avoid useless information into Non-fatal error  
+
 ### [1.1.0](https://github.com/Insurlytech/CometDClient-iOS/1.1.0)
 
 * Errors - Create recorder for sharing important errors  
