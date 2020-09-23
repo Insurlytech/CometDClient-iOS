@@ -21,12 +21,12 @@ Pod::Spec.new do |spec|
   spec.source       = { :git => "https://github.com/Insurlytech/CometDClient-iOS.git", :tag => "#{spec.version}" }
   spec.source_files  = "Sources/**/*.swift"
   spec.exclude_files = "Classes/Exclude"
-  spec.swift_version = '5.2'
+  spec.swift_version = '5.3'
 
   spec.framework  = "Foundation"
   spec.requires_arc = true
 
-  spec.dependency "Starscream", "4.0.3"
-  spec.dependency "SwiftyJSON", "~> 5.0"
-  spec.dependency "XCGLogger", "~> 7.0.1"
+  spec.dependency "Starscream", "4.0.4"
+  spec.dependency "SwiftyJSON", "5.0.0"
+  spec.dependency "XCGLogger", "7.0.1"
 end
