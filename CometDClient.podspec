@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |spec|
   spec.name         = "CometDClient"
-  spec.version      = "1.1.2"
+  spec.version      = "1.1.3"
   spec.summary      = "Swift client for CometD"
   spec.description  = <<-DESC
   CometD is a scalable web event routing bus that allows you to write low-latency, server-side, event-driven web applications. Typical examples of such applications are stock trading applications, web chat applications, online games, and monitoring consoles.
@@ -21,12 +21,12 @@ Pod::Spec.new do |spec|
   spec.source       = { :git => "https://github.com/Insurlytech/CometDClient-iOS.git", :tag => "#{spec.version}" }
   spec.source_files  = "Sources/**/*.swift"
   spec.exclude_files = "Classes/Exclude"
-  spec.swift_version = '5.2'
+  spec.swift_version = '5.3'
 
   spec.framework  = "Foundation"
   spec.requires_arc = true
 
-  spec.dependency "Starscream", "4.0.3"
-  spec.dependency "SwiftyJSON", "~> 5.0"
-  spec.dependency "XCGLogger", "~> 7.0.1"
+  spec.dependency "Starscream", "4.0.4"
+  spec.dependency "SwiftyJSON", "5.0.0"
+  spec.dependency "XCGLogger", "7.0.1"
 end
