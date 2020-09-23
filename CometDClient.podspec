@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |spec|
   spec.name         = "CometDClient"
-  spec.version      = "1.1.2"
+  spec.version      = "1.1.3"
   spec.summary      = "Swift client for CometD"
   spec.description  = <<-DESC
   CometD is a scalable web event routing bus that allows you to write low-latency, server-side, event-driven web applications. Typical examples of such applications are stock trading applications, web chat applications, online games, and monitoring consoles.
