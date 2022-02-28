@@ -1,6 +1,10 @@
 # CHANGELOG
 All notable changes to this project will be documented in this file.
 
+### [1.1.4](https://github.com/Insurlytech/CometDClient-iOS/1.1.4)
+
+* update SwiftJSON to target our forked repo
+
 ### [1.1.3](https://github.com/Insurlytech/CometDClient-iOS/1.1.3)
 
 * Package - Fix versions  
